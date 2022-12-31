@@ -1,0 +1,50 @@
+body {
+  background-color: black;
+  color: rgb(203, 222, 216);
+  font-family: 'Arial Narrow', Arial, sans-serif;
+}
+
+main {
+  width: 95%;
+  max-width: 400px;
+  margin: auto;
+}
+
+main>*, #rawRoster{
+  width:100%;
+  margin: auto;
+}
+
+.heading {
+  margin-bottom: 1rem;
+}
+
+.instructions {
+  margin-bottom: 1rem;
+}
+
+
+
+#rawRoster {
+  height: 50vh;
+  background-color: rgb(29, 0, 176);
+  border: 1px solid rgb(0, 52, 148);
+  color:rgb(203, 222, 216);
+  margin-bottom: 1rem;
+  max-width: 100%;
+}
+
+#downloadiCal {
+  margin-bottom: 2rem;
+  height: 2rem;
+  background: black;
+  color:rgb(203, 222, 216);
+  border: 1px solid rgb(203, 222, 216);
+  border-radius: 2px;
+}
+
+#downloadiCal:hover {
+  cursor: pointer;
+  background: rgb(43, 33, 33);
+
+}

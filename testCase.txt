@@ -1,0 +1,40 @@
+Date: Fri, 30 Dec 2022, 5:45:08 PM
+Name: Joe Bloggs
+
+Sun, 01 Jan 2023 OFF
+Mon, 02 Jan 2023 OFF
+Tue, 03 Jan 2023 OFF
+Wed, 04 Jan 2023 OFF
+Thu, 05 Jan 2023 OFF
+Fri, 06 Jan 2023 OFF
+Sat, 07 Jan 2023 OFF
+Sun, 08 Jan 2023 OFF
+Mon, 09 Jan 2023 OFF
+Tue, 10 Jan 2023 OFF
+Wed, 11 Jan 2023 OFF
+Thu, 12 Jan 2023 OFF
+Fri, 13 Jan 2023 OFF
+Sat, 14 Jan 2023 OFF
+Sun, 15 Jan 2023 OFF
+Mon, 16 Jan 2023 OFF
+Tue, 17 Jan 2023 OFF
+Wed, 18 Jan 2023 OFF
+Thu, 19 Jan 2023 OFF
+Fri, 20 Jan 2023 OFF
+Sat, 21 Jan 2023 OFF
+Sun, 22 Jan 2023 TRT
+Mon, 23 Jan 2023 INI
+Tue, 24 Jan 2023 INI
+Wed, 25 Jan 2023 INI
+Thu, 26 Jan 2023 INI
+Fri, 27 Jan 2023 INI
+Sat, 28 Jan 2023 INI
+Sun, 29 Jan 2023 INI
+Mon, 30 Jan 2023 INI
+Tue, 31 Jan 2023 INI
+
+
+TRT - Training Travel
+INI - Initial Simulator
+
+For crew members rostered for line training - please bear in mind that your roster may be subject to change, depending on your license validation, the availability of Line Trainers and the progress of your line training.
