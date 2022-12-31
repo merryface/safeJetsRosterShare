@@ -47,11 +47,11 @@ METHOD:PUBLISH
   document.body.appendChild(downloadLink);
   downloadLink.click();
 
-  // Set the "Content-Disposition" header to "inline"
+  // Set the "Content-Type" header to "text/calendar"
   const headers = new Headers();
-  headers.set('Content-Disposition', 'inline; filename=duty.ics');
+  headers.set('Content-Type', 'text/calendar');
 
-  // Fetch the ics file and serve it with the "Content-Disposition" header
+  // Fetch the ics file and serve it with the "Content-Type" header
   fetch(objectURL, { headers })
     .then(response => {
       // Remove the link from the DOM
