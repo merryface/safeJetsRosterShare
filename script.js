@@ -31,39 +31,38 @@ CALSCALE:GREGORIAN
 METHOD:PUBLISH
 `+rosterDays+`END:VCALENDAR`
 
-   // Create a Blob from the iCalendar content
-   const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
+  // Create a Blob from the iCalendar content
+  const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
 
-   // Create an object URL from the Blob
-   const objectURL = URL.createObjectURL(blob);
- 
-   // Create a link element to use for the download
-   const downloadLink = document.createElement('a');
-   downloadLink.download = 'duty.ics';
-   downloadLink.href = objectURL;
-   downloadLink.style.display = 'none';
- 
-   // Add the link to the DOM and click it to trigger the download
-   document.body.appendChild(downloadLink);
-   downloadLink.click();
- 
-   // Set the "Content-Disposition" header to "inline"
-   const headers = new Headers();
-   headers.set('Content-Disposition', 'inline');
- 
-   // Fetch the ics file and serve it with the "Content-Disposition" header
-   fetch(objectURL, { headers })
-     .then(response => {
-       // Remove the link from the DOM
-       document.body.removeChild(downloadLink);
- 
-       // Revoke the object URL
-       URL.revokeObjectURL(objectURL);
-     })
-     .catch(error => {
-       console.error(error);
-     });
+  // Create an object URL from the Blob
+  const objectURL = URL.createObjectURL(blob);
 
+  // Create a link element to use for the download
+  const downloadLink = document.createElement('a');
+  downloadLink.download = 'duty.ics';
+  downloadLink.href = objectURL;
+  downloadLink.style.display = 'none';
+
+  // Add the link to the DOM and click it to trigger the download
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+
+  // Set the "Content-Disposition" header to "inline"
+  const headers = new Headers();
+  headers.set('Content-Disposition', 'inline; filename=duty.ics');
+
+  // Fetch the ics file and serve it with the "Content-Disposition" header
+  fetch(objectURL, { headers })
+    .then(response => {
+      // Remove the link from the DOM
+      document.body.removeChild(downloadLink);
+
+      // Revoke the object URL
+      URL.revokeObjectURL(objectURL);
+    })
+    .catch(error => {
+      console.error(error);
+    });
 }
 
 document.getElementById("downloadiCal").addEventListener("click", () => downloadICal())
