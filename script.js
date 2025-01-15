@@ -1,27 +1,63 @@
 import getDateString from './utils/getDateString.js'
 import createRandomICalUid from './utils/createRandomICalUid.js';
 
-async function downloadICal() {
-  const emailText = document.getElementById("rawRoster").value.split('\n')
-  const roster = emailText.filter(line => line.match(/^\w{3}, \d{2} \w{3} \d{4}/));
+function downloadICal() {
+  const emailText = document.getElementById("rawRoster").value.split('\n');
+  const roster = emailText.filter(line => line.match(/^\w{3}, \d{2} \w{3} \d{4} [A-Z]+$/));
   
-  let rosterDays = '' 
-  roster.forEach(day => {
-    const Startdate = getDateString(day, false).slice(0, 8);  // Get only the YYYYMMDD part
-    const endDate = getDateString(day, true).slice(0, 8);      // Get only the YYYYMMDD part and increment by 1 day
+  console.log('Processing roster entries:', roster);
+
+  let rosterDays = '';
+  roster.forEach((day, index) => {
+    const match = day.match(/(\w{3}), (\d{2}) (\w{3}) (\d{4}) ([A-Z]+)/);
+    if (!match) {
+      console.error('Failed to parse date from:', day);
+      return;
+    }
+
+    const [_, dayOfWeek, dayOfMonth, month, year, dutyStatus] = match;
+    
+    // Create date object directly from components
+    const date = new Date(Date.UTC(
+      parseInt(year),
+      getMonthNumber(month),
+      parseInt(dayOfMonth)
+    ));
+    
+    // Format dates manually to avoid timezone issues
+    const startDate = date.getUTCFullYear().toString() +
+                     (date.getUTCMonth() + 1).toString().padStart(2, '0') +
+                     date.getUTCDate().toString().padStart(2, '0');
+    
+    // Calculate end date (next day)
+    date.setUTCDate(date.getUTCDate() + 1);
+    const endDate = date.getUTCFullYear().toString() +
+                   (date.getUTCMonth() + 1).toString().padStart(2, '0') +
+                   date.getUTCDate().toString().padStart(2, '0');
+    
+    // Format the display status - if not OFF, show as Duty
+    const displayStatus = dutyStatus === 'OFF' ? 'OFF' : 'Duty';
+    
+    console.log(`Processing entry ${index + 1}:`, {
+      original: day,
+      startDate,
+      endDate,
+      dutyStatus,
+      displayStatus
+    });
 
     let iCalEvent = `BEGIN:VEVENT
-DTSTAMP:${Startdate}T000000Z
-DTSTART;VALUE=DATE:${Startdate}
+DTSTAMP:${startDate}T000000Z
+DTSTART;VALUE=DATE:${startDate}
 DTEND;VALUE=DATE:${endDate}
 UID:${createRandomICalUid()}
-DESCRIPTION:${day.slice(-3)}
-SUMMARY:${day.slice(-3)}
+DESCRIPTION:${displayStatus}
+SUMMARY:${displayStatus}
 LOCATION:Online
 END:VEVENT
-`
+`;
 
-    rosterDays += iCalEvent
+    rosterDays += iCalEvent;
   });
 
   const icalContent = `BEGIN:VCALENDAR
@@ -29,36 +65,31 @@ VERSION:2.0
 PRODID:-//bobbin v0.1//NONSGML iCal Writer//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-`+rosterDays+`END:VCALENDAR`
+${rosterDays}END:VCALENDAR`;
 
-  // Create a Blob from the iCalendar content
+  // Create and download the file
   const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
+  const objectURL = URL.createObjectURL(blob);
 
-  // Generate a unique filename
-  const filename = `duty-${Date.now()}.ics`;
-
-  // Send the Blob to the server and get the URL of the uploaded file
-  const response = await fetch('http://localhost:3000/upload', {
-    method: 'POST',
-    body: blob,
-    headers: {
-      'Content-Disposition': `attachment; filename=${filename}`
-    }
-  });
-  const fileUrl = await response.text();
-
-  // Create a link element to use for the download
   const downloadLink = document.createElement('a');
-  downloadLink.download = filename;
-  downloadLink.href = fileUrl;
+  downloadLink.download = 'duty.ics';
+  downloadLink.href = objectURL;
   downloadLink.style.display = 'none';
-
-  // Add the link to the DOM and click it to trigger the download
   document.body.appendChild(downloadLink);
   downloadLink.click();
 
-  // Remove the link from the DOM
+  // Clean up
   document.body.removeChild(downloadLink);
+  URL.revokeObjectURL(objectURL);
 }
 
-document.getElementById("downloadiCal").addEventListener("click", () => downloadICal())
+// Helper function to convert month name to number (0-based)
+function getMonthNumber(monthStr) {
+  const months = {
+    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+  };
+  return months[monthStr];
+}
+
+document.getElementById("downloadiCal").addEventListener("click", () => downloadICal());
