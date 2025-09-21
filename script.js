@@ -1,95 +1,116 @@
-import getDateString from './utils/getDateString.js'
 import createRandomICalUid from './utils/createRandomICalUid.js';
 
-function downloadICal() {
-  const emailText = document.getElementById("rawRoster").value.split('\n');
-  const roster = emailText.filter(line => line.match(/^\w{3}, \d{2} \w{3} \d{4} [A-Z]+$/));
-  
-  console.log('Processing roster entries:', roster);
+// Source of truth: codes → full descriptions
+const keyDescription = {
+  D:   'Duty',
+  TRT: 'Training Travel',
+  INI: 'Type Rating Initial',
+  REC: 'Sim Recurrent Training',
+  GRT: 'Ground Recurrent Training',
+  BT:  'Base Training',
+  OGD: 'Office Ground Duties'
+};
 
-  let rosterDays = '';
-  roster.forEach((day, index) => {
-    const match = day.match(/(\w{3}), (\d{2}) (\w{3}) (\d{4}) ([A-Z]+)/);
-    if (!match) {
-      console.error('Failed to parse date from:', day);
-      return;
+// Derived set of codes to include
+const includeCodes = new Set(Object.keys(keyDescription));
+
+function parseRosterLines(text) {
+  const rx = /^\w{3}, (\d{2}) (\w{3}) (\d{4}) ([A-Z]+)$/;
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+
+  const entries = [];
+  for (const line of text.split('\n').map(s => s.trim()).filter(Boolean)) {
+    const m = line.match(rx);
+    if (!m) continue;
+    const [, dd, mon, yyyy, code] = m;
+    const date = new Date(Date.UTC(+yyyy, months[mon], +dd));
+    entries.push({ date, code });
+  }
+  entries.sort((a, b) => a.date - b.date);
+  return entries;
+}
+
+function groupRuns(entries) {
+  const runs = [];
+  if (entries.length === 0) return runs;
+
+  let start = entries[0].date;
+  let end = entries[0].date;
+  let code = entries[0].code;
+
+  for (let i = 1; i < entries.length; i++) {
+    const cur = entries[i];
+    const nextDay = new Date(end.getTime());
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+    const isConsecutive = cur.date.getTime() === nextDay.getTime();
+    const sameCode = cur.code === code;
+
+    if (isConsecutive && sameCode) {
+      end = cur.date;
+    } else {
+      runs.push({ start, end, code });
+      start = cur.date;
+      end = cur.date;
+      code = cur.code;
     }
+  }
+  runs.push({ start, end, code });
+  return runs;
+}
 
-    const [_, dayOfWeek, dayOfMonth, month, year, dutyStatus] = match;
-    
-    // Create date object directly from components
-    const date = new Date(Date.UTC(
-      parseInt(year),
-      getMonthNumber(month),
-      parseInt(dayOfMonth)
-    ));
-    
-    // Format dates manually to avoid timezone issues
-    const startDate = date.getUTCFullYear().toString() +
-                     (date.getUTCMonth() + 1).toString().padStart(2, '0') +
-                     date.getUTCDate().toString().padStart(2, '0');
-    
-    // Calculate end date (next day)
-    date.setUTCDate(date.getUTCDate() + 1);
-    const endDate = date.getUTCFullYear().toString() +
-                   (date.getUTCMonth() + 1).toString().padStart(2, '0') +
-                   date.getUTCDate().toString().padStart(2, '0');
-    
-    // Format the display status - if not OFF, show as Duty
-    const displayStatus = dutyStatus === 'OFF' ? 'OFF' : 'Duty';
-    
-    console.log(`Processing entry ${index + 1}:`, {
-      original: day,
-      startDate,
-      endDate,
-      dutyStatus,
-      displayStatus
-    });
+function formatDateAsYYYYMMDD(d) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}${m}${day}`;
+}
 
-    let iCalEvent = `BEGIN:VEVENT
-DTSTAMP:${startDate}T000000Z
-DTSTART;VALUE=DATE:${startDate}
-DTEND;VALUE=DATE:${endDate}
+function downloadICalFromText(raw) {
+  const entries = parseRosterLines(raw);
+  const runs = groupRuns(entries).filter(r => includeCodes.has(r.code));
+
+  let events = '';
+  for (const r of runs) {
+    const dtStart = formatDateAsYYYYMMDD(r.start);
+    const dtEndExclusive = new Date(r.end.getTime());
+    dtEndExclusive.setUTCDate(dtEndExclusive.getUTCDate() + 1);
+    const dtEnd = formatDateAsYYYYMMDD(dtEndExclusive);
+
+    const fullText = keyDescription[r.code];
+
+    events += `BEGIN:VEVENT
+DTSTAMP:${dtStart}T000000Z
+DTSTART;VALUE=DATE:${dtStart}
+DTEND;VALUE=DATE:${dtEnd}
 UID:${createRandomICalUid()}
-DESCRIPTION:${displayStatus}
-SUMMARY:${displayStatus}
-LOCATION:Online
+SUMMARY:${fullText}
+DESCRIPTION:${fullText}
 END:VEVENT
 `;
+  }
 
-    rosterDays += iCalEvent;
-  });
-
-  const icalContent = `BEGIN:VCALENDAR
+  const ical = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//bobbin v0.1//NONSGML iCal Writer//EN
+PRODID:-//bobbin v0.3//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-${rosterDays}END:VCALENDAR`;
+${events}END:VCALENDAR`;
 
-  // Create and download the file
-  const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
-  const objectURL = URL.createObjectURL(blob);
-
-  const downloadLink = document.createElement('a');
-  downloadLink.download = 'duty.ics';
-  downloadLink.href = objectURL;
-  downloadLink.style.display = 'none';
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-
-  // Clean up
-  document.body.removeChild(downloadLink);
-  URL.revokeObjectURL(objectURL);
+  const blob = new Blob([ical], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = 'duty.ics';
+  a.href = url;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
-// Helper function to convert month name to number (0-based)
-function getMonthNumber(monthStr) {
-  const months = {
-    'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-    'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
-  };
-  return months[monthStr];
-}
-
-document.getElementById("downloadiCal").addEventListener("click", () => downloadICal());
+// Button hook
+document.getElementById('downloadiCal').addEventListener('click', () => {
+  const raw = document.getElementById('rawRoster').value;
+  downloadICalFromText(raw);
+});
